@@ -1,5 +1,6 @@
 import { useState, useEffect, CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import {
   ReactFlow,
   Background,
@@ -18,15 +19,14 @@ import {
   type Node,
   type Edge,
   type EdgeProps,
+  BackgroundVariant,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
   GitFork,
-  Network,
   Database,
   Cpu,
   Search,
-  Filter,
   X,
   Building2,
   Wallet,
@@ -37,81 +37,23 @@ import {
   Globe,
   MapPin,
   CreditCard,
+  Maximize2,
+  Folder,
+  User,
+  DollarSign,
+  ArrowUpRight,
 } from "lucide-react";
 import { api } from "../api";
 import { ErrorBox, Loading } from "../components";
 import type { GraphSAGEData, Neo4jStatus } from "../types";
 
-/* ── Forensic Entity Color & Theme Config ──────────────────────────────── */
-const FORENSIC_ENTITY_CONFIG: Record<
-  string,
-  { color: string; accent: string; border: string; bg: string; iconBg: string; label: string; badge: string }
-> = {
-  transaction: {
-    color: "#EF4444",
-    accent: "#DC2626",
-    border: "#FCA5A5",
-    bg: "#FEF2F2",
-    iconBg: "#FEE2E2",
-    label: "Transaction Event",
-    badge: "TRANSACTION",
-  },
-  customer: {
-    color: "#2563EB",
-    accent: "#3B82F6",
-    border: "#BFDBFE",
-    bg: "#EFF6FF",
-    iconBg: "#DBEAFE",
-    label: "Customer Account",
-    badge: "CUSTOMER",
-  },
-  merchant: {
-    color: "#7C3AED",
-    accent: "#8B5CF6",
-    border: "#DDD6FE",
-    bg: "#F5F3FF",
-    iconBg: "#EDE9FE",
-    label: "Merchant Receiver",
-    badge: "MERCHANT",
-  },
-  device: {
-    color: "#D97706",
-    accent: "#F59E0B",
-    border: "#FDE68A",
-    bg: "#FFFBEB",
-    iconBg: "#FEF3C7",
-    label: "Shared Device",
-    badge: "DEVICE",
-  },
-  ip: {
-    color: "#475569",
-    accent: "#64748B",
-    border: "#CBD5E1",
-    bg: "#F8FAFC",
-    iconBg: "#F1F5F9",
-    label: "IP Network",
-    badge: "IP ADDRESS",
-  },
-  location: {
-    color: "#059669",
-    accent: "#10B981",
-    border: "#A7F3D0",
-    bg: "#F0FDF4",
-    iconBg: "#DCFCE7",
-    label: "Geo Location",
-    badge: "LOCATION",
-  },
-};
-
-/* ── Custom Forensic Graph Node Component ───────────────────────────── */
-function ForensicNodeCard({ data, isConnectable }: { data: any; isConnectable?: boolean }) {
+/* ── Dark Forensic Node Card Component ───────────────────────────── */
+function DarkForensicNode({ data, isConnectable }: { data: any; isConnectable?: boolean }) {
   const [copied, setCopied] = useState(false);
   const kind = (data.kind || "transaction").toLowerCase();
-  const cfg = FORENSIC_ENTITY_CONFIG[kind] || FORENSIC_ENTITY_CONFIG.customer;
-
   const isSelected = data.isSelected;
   const isCritical = ["HIGH", "CRITICAL"].includes(data.risk);
-  const isNodeMode = data.nodeDisplayMode !== "CARD";
+  const isCase = kind === "case" || data.id.startsWith("CASE");
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -122,170 +64,85 @@ function ForensicNodeCard({ data, isConnectable }: { data: any; isConnectable?: 
     }
   };
 
-  const getIcon = (size = 20) => {
-    if (kind === "transaction") return <CreditCard size={size} color={cfg.color} strokeWidth={2.2} />;
-    if (kind === "customer") return <Wallet size={size} color={cfg.color} strokeWidth={2.2} />;
-    if (kind === "merchant") return <Building2 size={size} color={cfg.color} strokeWidth={2.2} />;
-    if (kind === "device") return <HardDrive size={size} color={cfg.color} strokeWidth={2.2} />;
-    if (kind === "ip") return <Globe size={size} color={cfg.color} strokeWidth={2.2} />;
-    return <MapPin size={size} color={cfg.color} strokeWidth={2.2} />;
+  const getIcon = () => {
+    if (isCase) return <Folder size={16} color="#F97316" />;
+    if (kind === "customer") return <User size={16} color="#38BDF8" />;
+    if (kind === "card" || kind === "device") return <CreditCard size={16} color="#A78BFA" />;
+    if (kind === "transaction") return <DollarSign size={16} color="#4ADE80" />;
+    if (kind === "merchant") return <Building2 size={16} color="#F472B6" />;
+    if (kind === "ip") return <Globe size={16} color="#94A3B8" />;
+    return <MapPin size={16} color="#34D399" />;
   };
 
-  const displayName = data.label || data.id;
-  const shortName = displayName.length > 16 ? `${displayName.slice(0, 7)}...${displayName.slice(-5)}` : displayName;
+  const getBorderColor = () => {
+    if (isSelected) return "#38BDF8";
+    if (isCase) return "#F97316";
+    if (isCritical) return "#EF4444";
+    if (kind === "customer") return "#0284C7";
+    if (kind === "transaction") return "#16A34A";
+    return "#334155";
+  };
 
-  if (isNodeMode) {
-    const nodeDiameter = kind === "transaction" ? 56 : 50;
-    return (
-      <div
-        style={{
-          position: "relative",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          width: 140,
-          cursor: "pointer",
-          userSelect: "none",
-        }}
-      >
-        <div
-          style={{
-            position: "relative",
-            width: nodeDiameter,
-            height: nodeDiameter,
-            borderRadius: kind === "merchant" || kind === "device" ? 14 : "50%",
-            background: isSelected ? "#EFF6FF" : "#FFFFFF",
-            border: isSelected
-              ? "3px solid #2563EB"
-              : isCritical
-              ? "3px solid #EF4444"
-              : `2.5px solid ${cfg.color}`,
-            boxShadow: isSelected
-              ? "0 0 0 5px rgba(37, 99, 235, 0.25)"
-              : isCritical
-              ? "0 0 0 4px rgba(239, 68, 68, 0.25)"
-              : "0 4px 12px -2px rgba(0, 0, 0, 0.08)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transition: "all 0.15s ease",
-          }}
-        >
-          <Handle type="target" position={Position.Left} isConnectable={isConnectable} style={{ background: cfg.color }} />
-          {getIcon(20)}
-          <div
-            style={{
-              position: "absolute",
-              top: -4,
-              right: -4,
-              minWidth: 16,
-              height: 16,
-              borderRadius: 99,
-              background: isCritical ? "#DC2626" : cfg.color,
-              color: "#FFFFFF",
-              fontSize: "8.5px",
-              fontWeight: 800,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "0 4px",
-              border: "2px solid #FFFFFF",
-            }}
-          >
-            {data.degree || 1}
-          </div>
-          <Handle type="source" position={Position.Right} isConnectable={isConnectable} style={{ background: cfg.color }} />
-        </div>
-
-        <div style={{ marginTop: 6, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, maxWidth: 136 }}>
-          <div
-            style={{
-              fontSize: "11px",
-              fontWeight: 700,
-              color: "#0F172A",
-              background: "rgba(255, 255, 255, 0.96)",
-              padding: "2px 8px",
-              borderRadius: 6,
-              border: "1px solid #CBD5E1",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              maxWidth: "100%",
-            }}
-            title={displayName}
-          >
-            {shortName}
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            {data.amount !== undefined ? (
-              <span style={{ fontSize: "9.5px", fontWeight: 700, color: "#047857", background: "#ECFDF5", border: "1px solid #A7F3D0", padding: "1px 5px", borderRadius: 4 }}>
-                ${data.amount} {data.currency || "USD"}
-              </span>
-            ) : (
-              <span style={{ fontSize: "9px", fontFamily: "monospace", color: "#64748B", background: "#F1F5F9", padding: "1px 4px", borderRadius: 3 }}>
-                {cfg.badge}
-              </span>
-            )}
-            <button onClick={handleCopy} title="Copy ID" style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: copied ? "#10B981" : "#94A3B8" }}>
-              {copied ? <Check size={10} /> : <Copy size={9} />}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  /* CARD MODE */
   return (
     <div
       style={{
         position: "relative",
-        width: 210,
-        minHeight: 70,
-        background: "#FFFFFF",
-        borderRadius: 10,
-        border: isSelected ? "2px solid #2563EB" : isCritical ? "2px solid #EF4444" : `1.5px solid ${cfg.border}`,
-        borderLeft: `5px solid ${cfg.color}`,
-        boxShadow: "0 2px 8px -1px rgba(0, 0, 0, 0.05)",
-        padding: "8px 10px",
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
+        minWidth: 210,
+        background: isCase ? "#1E1B4B" : "#0F172A",
+        borderRadius: 8,
+        border: `1.5px solid ${getBorderColor()}`,
+        boxShadow: isSelected
+          ? "0 0 0 3px rgba(56, 189, 248, 0.3), 0 8px 20px rgba(0,0,0,0.5)"
+          : isCritical
+          ? "0 0 0 3px rgba(239, 68, 68, 0.3)"
+          : "0 4px 14px rgba(0,0,0,0.4)",
+        padding: "10px 12px",
+        color: "#F8FAFC",
+        fontFamily: "Inter, system-ui, sans-serif",
         cursor: "pointer",
         userSelect: "none",
       }}
     >
-      <Handle type="target" position={Position.Left} isConnectable={isConnectable} style={{ background: cfg.color }} />
-      <div style={{ width: 36, height: 36, borderRadius: 8, background: cfg.iconBg, border: `1px solid ${cfg.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        {getIcon(18)}
+      <Handle type="target" position={Position.Top} isConnectable={isConnectable} style={{ background: getBorderColor(), width: 8, height: 8 }} />
+
+      {/* Node Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ background: "rgba(255,255,255,0.08)", padding: 4, borderRadius: 6, display: "flex" }}>
+            {getIcon()}
+          </div>
+          <span style={{ fontSize: "12px", fontWeight: 700, color: "#F8FAFC", wordBreak: "break-all" }}>
+            {data.label || data.id}
+          </span>
+        </div>
+        <button onClick={handleCopy} title="Copy ID" style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: copied ? "#4ADE80" : "#64748B" }}>
+          {copied ? <Check size={12} /> : <Copy size={11} />}
+        </button>
       </div>
 
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
-          <span style={{ fontSize: "8.5px", fontWeight: 800, textTransform: "uppercase", color: cfg.color }}>
-            {cfg.badge}
-          </span>
-          {isCritical && <span style={{ fontSize: "8px", fontWeight: 800, background: "#FEF2F2", color: "#DC2626", padding: "1px 4px", borderRadius: 3 }}>HIGH</span>}
-        </div>
-        <div style={{ fontSize: "11px", fontWeight: 700, color: "#0F172A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={displayName}>
-          {shortName}
-        </div>
-        <div style={{ fontSize: "9.5px", color: "#64748B", display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-          <span>Deg: {data.degree || 1}</span>
-          <button onClick={handleCopy} title="Copy ID" style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: copied ? "#10B981" : "#94A3B8" }}>
-            {copied ? <Check size={10} /> : <Copy size={9} />}
-          </button>
-        </div>
+      {/* Subtitle / Kind Badge */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "9px", textTransform: "uppercase", letterSpacing: 0.5, color: "#94A3B8" }}>
+        <span>{isCase ? "CASE" : kind.toUpperCase()}</span>
+        {isCase && <span style={{ background: "#F97316", color: "#FFFFFF", padding: "1px 5px", borderRadius: 3, fontWeight: 800 }}>CURRENT INVESTIGATION</span>}
       </div>
-      <Handle type="source" position={Position.Right} isConnectable={isConnectable} style={{ background: cfg.color }} />
+
+      {/* Financial Amount & Risk Badge for Transactions */}
+      {data.amount !== undefined && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8, paddingTop: 6, borderTop: "1px solid #1E293B", fontSize: "11px" }}>
+          <span style={{ color: "#4ADE80", fontWeight: 800 }}>${data.amount} {data.currency || "USD"}</span>
+          <span style={{ fontSize: "10px", color: isCritical ? "#EF4444" : "#94A3B8", background: isCritical ? "rgba(239, 68, 68, 0.15)" : "#1E293B", padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>
+            Risk: {data.risk}
+          </span>
+        </div>
+      )}
+
+      <Handle type="source" position={Position.Bottom} isConnectable={isConnectable} style={{ background: getBorderColor(), width: 8, height: 8 }} />
     </div>
   );
 }
 
-/* ── Custom Edge ───────────────────────────── */
-function ForensicEdge({
+/* ── Curved Dark Forensic Edge ───────────────────────────── */
+function DarkForensicEdge({
   sourceX,
   sourceY,
   targetX,
@@ -303,31 +160,33 @@ function ForensicEdge({
     targetX,
     targetY,
     targetPosition,
-    curvature: 0.28,
+    curvature: 0.35,
   });
 
   const rel = (data as any)?.relationship;
 
   return (
     <>
-      <BaseEdge path={edgePath} markerEnd={markerEnd} style={{ ...style, stroke: "#94a3b8", strokeWidth: 1.8 }} />
+      <BaseEdge path={edgePath} markerEnd={markerEnd} style={{ ...style, stroke: "#475569", strokeWidth: 1.8 }} />
       {rel && (
         <EdgeLabelRenderer>
           <div
             style={{
               position: "absolute",
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-              fontSize: "9px",
-              fontWeight: 700,
-              padding: "2px 7px",
-              borderRadius: 999,
-              background: "rgba(255, 255, 255, 0.95)",
-              color: "#334155",
-              border: "1px solid #E2E8F0",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+              fontSize: "8.5px",
+              fontWeight: 800,
+              padding: "2px 6px",
+              borderRadius: 4,
+              background: "#0F172A",
+              color: "#CBD5E1",
+              border: "1px solid #334155",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
               pointerEvents: "all",
               userSelect: "none",
               whiteSpace: "nowrap",
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
             }}
           >
             {rel}
@@ -338,10 +197,10 @@ function ForensicEdge({
   );
 }
 
-const nodeTypes = { custom: ForensicNodeCard };
-const edgeTypes = { forensic: ForensicEdge };
+const nodeTypes = { custom: DarkForensicNode };
+const edgeTypes = { forensic: DarkForensicEdge };
 
-/* ── Inner Canvas ───────────────────────── */
+/* ── Inner Canvas Component ───────────────────────── */
 function GraphCanvasInner({
   nodes,
   edges,
@@ -360,14 +219,14 @@ function GraphCanvasInner({
   useEffect(() => {
     if (nodes && nodes.length > 0) {
       const timer = setTimeout(() => {
-        fitView({ padding: 0.18, duration: 400, maxZoom: 1.0, minZoom: 0.35 });
+        fitView({ padding: 0.15, duration: 400, maxZoom: 1.0, minZoom: 0.3 });
       }, 100);
       return () => clearTimeout(timer);
     }
   }, [nodes.length, fitView]);
 
   return (
-    <div style={{ flex: 1, width: "100%", height: "460px", position: "relative" }}>
+    <div style={{ flex: 1, width: "100%", height: "520px", position: "relative" }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -376,19 +235,17 @@ function GraphCanvasInner({
         onNodeClick={onNodeClick}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        minZoom={0.2}
+        minZoom={0.15}
         maxZoom={2.4}
-        style={{ background: "#F8FAFC" }}
+        style={{ background: "#090D16" }}
       >
-        <Controls style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 8 }} />
+        <Controls style={{ background: "#0F172A", border: "1px solid #1E293B", borderRadius: 8, fill: "#94A3B8" }} />
         <MiniMap
-          style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 8, width: 140, height: 80 }}
-          nodeColor={(n) => {
-            const kind = (n.data?.kind || "").toString().toLowerCase();
-            return FORENSIC_ENTITY_CONFIG[kind]?.color || "#3B82F6";
-          }}
+          style={{ background: "#0F172A", border: "1px solid #1E293B", borderRadius: 8, width: 140, height: 80 }}
+          nodeColor={(n) => (n.data?.kind === "customer" ? "#38BDF8" : n.data?.kind === "transaction" ? "#4ADE80" : "#F97316")}
+          maskColor="rgba(9, 13, 22, 0.8)"
         />
-        <Background gap={22} color="#E2E8F0" />
+        <Background variant={BackgroundVariant.Dots} gap={22} size={1.5} color="#1E293B" />
       </ReactFlow>
     </div>
   );
@@ -420,7 +277,6 @@ export default function InvestigationGraph({ id }: { id: string }) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [filterKind, setFilterKind] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [nodeDisplayMode, setNodeDisplayMode] = useState<"NODE" | "CARD">("NODE");
   const [engineMode, setEngineMode] = useState<"flow" | "neo4j">("flow");
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -444,6 +300,7 @@ export default function InvestigationGraph({ id }: { id: string }) {
     }
   };
 
+  /* ── Top-to-Bottom Hierarchical Tree Layout Algorithm ── */
   useEffect(() => {
     if (!query.data) return;
 
@@ -458,65 +315,89 @@ export default function InvestigationGraph({ id }: { id: string }) {
 
     const activeNodeIds = new Set(filteredNodesData.map((n) => n.data.id));
 
-    // Structured 2D Multi-Column Layout Grid
-    const kindCounters: Record<string, number> = {};
-    let txCounter = 0;
+    // Categorize nodes into Hierarchical Levels (Top to Bottom)
+    const level0_Case: any[] = [];
+    const level1_Customer: any[] = [];
+    const level2_CardsDevices: any[] = [];
+    const level3_Transactions: any[] = [];
 
-    setNodes(
-      filteredNodesData.map(({ data }) => {
-        let posX = 0;
-        let posY = 0;
+    filteredNodesData.forEach((n) => {
+      const k = n.data.kind;
+      if (k === "case" || n.data.id.startsWith("CASE")) level0_Case.push(n);
+      else if (k === "customer") level1_Customer.push(n);
+      else if (k === "card" || k === "device" || k === "ip") level2_CardsDevices.push(n);
+      else level3_Transactions.push(n);
+    });
 
-        if (data.kind === "customer") {
-          const idx = kindCounters["customer"] || 0;
-          kindCounters["customer"] = idx + 1;
-          posX = 0;
-          posY = idx * (nodeDisplayMode === "CARD" ? 110 : 120);
-        } else if (data.kind === "transaction") {
-          const col = txCounter % 2;
-          const row = Math.floor(txCounter / 2);
-          txCounter += 1;
-          posX = 260 + col * (nodeDisplayMode === "CARD" ? 240 : 210);
-          posY = row * (nodeDisplayMode === "CARD" ? 110 : 120);
-        } else if (data.kind === "merchant") {
-          const idx = kindCounters["merchant"] || 0;
-          kindCounters["merchant"] = idx + 1;
-          posX = 760;
-          posY = idx * (nodeDisplayMode === "CARD" ? 110 : 120);
-        } else {
-          // Devices, IPs, Locations
-          const idx = kindCounters["other"] || 0;
-          kindCounters["other"] = idx + 1;
-          posX = 990;
-          posY = idx * (nodeDisplayMode === "CARD" ? 100 : 110);
-        }
+    // Default Case Node if none exists
+    if (level0_Case.length === 0) {
+      level0_Case.push({
+        data: { id: `CASE-${id.slice(0, 8)}`, label: `CASE ${id.slice(0, 8)}`, kind: "case", risk: "HIGH" },
+      });
+    }
 
-        return {
-          id: data.id,
-          type: "custom",
-          position: { x: posX, y: posY },
-          data: {
-            ...data,
-            isSelected: data.id === selectedNodeId,
-            nodeDisplayMode,
-          },
-        } as Node;
-      }),
-    );
+    const calculatedNodes: Node[] = [];
 
+    // Level 0 (Top: Case)
+    level0_Case.forEach((n, idx) => {
+      calculatedNodes.push({
+        id: n.data.id,
+        type: "custom",
+        position: { x: 340 + idx * 240, y: 30 },
+        data: { ...n.data, isSelected: n.data.id === selectedNodeId },
+      });
+    });
+
+    // Level 1 (Customer)
+    level1_Customer.forEach((n, idx) => {
+      calculatedNodes.push({
+        id: n.data.id,
+        type: "custom",
+        position: { x: 340 + idx * 240, y: 160 },
+        data: { ...n.data, isSelected: n.data.id === selectedNodeId },
+      });
+    });
+
+    // Level 2 (Cards / Devices / IPs)
+    const cardWidth = 240;
+    const cardStartX = 340 - ((level2_CardsDevices.length - 1) * cardWidth) / 2;
+    level2_CardsDevices.forEach((n, idx) => {
+      calculatedNodes.push({
+        id: n.data.id,
+        type: "custom",
+        position: { x: Math.max(40, cardStartX + idx * cardWidth), y: 300 },
+        data: { ...n.data, isSelected: n.data.id === selectedNodeId },
+      });
+    });
+
+    // Level 3 (Transactions at Bottom)
+    const txWidth = 240;
+    const txStartX = 340 - ((level3_Transactions.length - 1) * txWidth) / 2;
+    level3_Transactions.forEach((n, idx) => {
+      calculatedNodes.push({
+        id: n.data.id,
+        type: "custom",
+        position: { x: Math.max(40, txStartX + idx * txWidth), y: 440 },
+        data: { ...n.data, isSelected: n.data.id === selectedNodeId },
+      });
+    });
+
+    setNodes(calculatedNodes);
+
+    // Build edges with top-to-bottom Bezier connectors
     setEdges(
       query.data.edges
-        .filter(({ data }) => activeNodeIds.has(data.source) && activeNodeIds.has(data.target))
+        .filter(({ data }) => activeNodeIds.has(data.source) || activeNodeIds.has(data.target))
         .map(({ data }) => ({
           id: data.id,
           type: "forensic",
           source: data.source,
           target: data.target,
           data: { ...data },
-          markerEnd: { type: MarkerType.ArrowClosed, color: "#64748b" },
+          markerEnd: { type: MarkerType.ArrowClosed, color: "#475569" },
         })),
     );
-  }, [query.data, filterKind, searchTerm, selectedNodeId, nodeDisplayMode, setNodes, setEdges]);
+  }, [query.data, filterKind, searchTerm, selectedNodeId, setNodes, setEdges, id]);
 
   const selectedNodeObj = query.data?.nodes.find((n) => n.data.id === selectedNodeId)?.data;
   const connectedEdges = query.data?.edges.filter(
@@ -527,304 +408,186 @@ export default function InvestigationGraph({ id }: { id: string }) {
   const neo4j = query.data?.neo4j;
 
   return (
-    <section className="panel graph-panel" style={{ position: "relative" }}>
-      <div className="panel-heading" style={{ flexWrap: "wrap", gap: "12px" }}>
-        <div>
-          <h2 style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <GitFork size={19} />
-            Graph Intelligence & Forensic Map
-          </h2>
-          <p className="muted">
-            Interactive multi-hop relationship viewer with GraphSAGE GNN & Neo4j Cypher engine.
-          </p>
+    <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: "16px", marginTop: "16px" }}>
+      {/* Left Active Case & Services Sidebar (Matches Screenshot) */}
+      <aside style={{ background: "#0F172A", border: "1px solid #1E293B", borderRadius: 10, padding: "16px", color: "#F8FAFC" }}>
+        <div style={{ fontSize: "10px", fontWeight: 800, textTransform: "uppercase", color: "#94A3B8", letterSpacing: 0.8, marginBottom: 12 }}>
+          ACTIVE CASE
         </div>
 
-        {/* View Mode & Engine Controls */}
-        <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-          <div style={{ display: "flex", background: "#F1F5F9", padding: "3px", borderRadius: "8px", border: "1px solid #E2E8F0" }}>
-            <button
-              type="button"
-              onClick={() => setNodeDisplayMode("NODE")}
-              style={{
-                fontSize: "11px",
-                fontWeight: 700,
-                padding: "4px 10px",
-                borderRadius: "6px",
-                border: "none",
-                background: nodeDisplayMode === "NODE" ? "#FFFFFF" : "transparent",
-                color: nodeDisplayMode === "NODE" ? "#2563EB" : "#64748B",
-                cursor: "pointer",
-                boxShadow: nodeDisplayMode === "NODE" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
-              }}
-            >
-              Circle Vertices
-            </button>
-            <button
-              type="button"
-              onClick={() => setNodeDisplayMode("CARD")}
-              style={{
-                fontSize: "11px",
-                fontWeight: 700,
-                padding: "4px 10px",
-                borderRadius: "6px",
-                border: "none",
-                background: nodeDisplayMode === "CARD" ? "#FFFFFF" : "transparent",
-                color: nodeDisplayMode === "CARD" ? "#2563EB" : "#64748B",
-                cursor: "pointer",
-                boxShadow: nodeDisplayMode === "CARD" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
-              }}
-            >
-              Forensic Cards
-            </button>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: "11px", color: "#64748B" }}>Case Ref</div>
+          <div style={{ fontSize: "16px", fontWeight: 800, color: "#F97316", margin: "2px 0 12px 0" }}>
+            HHG-{id.slice(-3)}
+          </div>
+          <Link
+            to="/input"
+            style={{
+              display: "block",
+              textAlign: "center",
+              background: "#F97316",
+              color: "#FFFFFF",
+              fontWeight: 700,
+              fontSize: "12px",
+              padding: "8px 12px",
+              borderRadius: "6px",
+              textDecoration: "none",
+            }}
+          >
+            Open Workbench
+          </Link>
+        </div>
+
+        <hr style={{ borderColor: "#1E293B", margin: "16px 0" }} />
+
+        <div style={{ fontSize: "10px", fontWeight: 800, textTransform: "uppercase", color: "#94A3B8", letterSpacing: 0.8, marginBottom: 12 }}>
+          SERVICES & ENGINES
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "12px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ color: "#94A3B8", display: "flex", alignItems: "center", gap: 5 }}>
+              <Database size={13} color="#F97316" /> Graph Engine
+            </span>
+            <span style={{ fontWeight: 700, color: "#F8FAFC" }}>Neo4j / Cypher</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ color: "#94A3B8", display: "flex", alignItems: "center", gap: 5 }}>
+              <Cpu size={13} color="#A78BFA" /> Reasoning GNN
+            </span>
+            <span style={{ fontWeight: 700, color: "#F8FAFC" }}>GraphSAGE</span>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Dark Graph Canvas Panel */}
+      <section className="panel" style={{ background: "#0B0F19", border: "1px solid #1E293B", padding: 0, position: "relative" }}>
+        {/* Top Filter Pills Toolbar (Matches Screenshot) */}
+        <div style={{ background: "#0F172A", borderBottom: "1px solid #1E293B", padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: "11px", fontWeight: 800, textTransform: "uppercase", color: "#94A3B8", background: "#1E293B", padding: "3px 8px", borderRadius: 4 }}>
+              INVESTIGATION GRAPH
+            </span>
+            <span style={{ fontSize: "12px", fontWeight: 700, color: "#F8FAFC" }}>HHG-{id.slice(-3)}</span>
           </div>
 
-          <button
-            type="button"
-            className={engineMode === "flow" ? "primary" : ""}
-            onClick={() => setEngineMode("flow")}
-            style={{ padding: "5px 10px", fontSize: "11px", display: "flex", alignItems: "center", gap: "5px" }}
-          >
-            <Network size={13} /> ReactFlow Canvas
-          </button>
-          <button
-            type="button"
-            className={engineMode === "neo4j" ? "primary" : ""}
-            onClick={() => setEngineMode("neo4j")}
-            style={{ padding: "5px 10px", fontSize: "11px", display: "flex", alignItems: "center", gap: "5px" }}
-          >
-            <Database size={13} /> Neo4j Cypher Engine
-          </button>
+          {/* Filter Pills */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            {["Customer", "Card", "Transaction", "Device", "Email Domain", "Billing Region", "Case"].map((filter) => (
+              <button
+                key={filter}
+                type="button"
+                onClick={() => setFilterKind(filterKind === filter.toLowerCase() ? "all" : filter.toLowerCase())}
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  padding: "4px 10px",
+                  borderRadius: "4px",
+                  border: "1px solid #1E293B",
+                  background: filterKind === filter.toLowerCase() ? "#1E3A8A" : "#1E293B",
+                  color: filterKind === filter.toLowerCase() ? "#38BDF8" : "#94A3B8",
+                  cursor: "pointer",
+                }}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* GraphSAGE GNN & Neo4j Info Bar */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-          gap: "12px",
-          margin: "12px 16px",
-          padding: "12px",
-          background: "linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)",
-          borderRadius: "10px",
-          border: "1px solid #E2E8F0",
-        }}
-      >
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+        {/* Search & Action Bar inside Canvas */}
+        <div style={{ padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#090D16" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "#0F172A", border: "1px solid #1E293B", padding: "4px 10px", borderRadius: "6px", width: "220px" }}>
+            <Search size={13} color="#64748B" />
+            <input
+              type="text"
+              placeholder="Search Entity ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ border: "none", background: "transparent", fontSize: "11px", outline: "none", color: "#F8FAFC", width: "100%" }}
+            />
+            {searchTerm && <X size={12} style={{ cursor: "pointer", color: "#94A3B8" }} onClick={() => setSearchTerm("")} />}
+          </div>
+
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              type="button"
+              onClick={syncMutation}
+              disabled={isSyncing}
+              style={{ padding: "5px 10px", fontSize: "11px", background: "#0F172A", border: "1px solid #1E293B", borderRadius: "6px", color: "#94A3B8", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+            >
+              <RefreshCw size={12} className={isSyncing ? "animate-spin" : ""} />
+              {isSyncing ? "Syncing..." : "Sync Neo4j"}
+            </button>
+          </div>
+        </div>
+
+        <ErrorBox error={query.error} />
+
+        {query.isLoading ? (
+          <Loading />
+        ) : (
+          <ReactFlowProvider>
+            <GraphCanvasInner
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onNodeClick={(_: any, node: Node) => setSelectedNodeId(node.id)}
+            />
+          </ReactFlowProvider>
+        )}
+
+        {/* Selected Node Inspection Drawer */}
+        {selectedNodeObj && (
           <div
             style={{
-              width: "40px",
-              height: "40px",
-              borderRadius: "8px",
-              background: gnn?.signal ? "#FEF2F2" : "#EFF6FF",
-              color: gnn?.signal ? "#DC2626" : "#2563EB",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              position: "absolute",
+              top: "90px",
+              right: "20px",
+              width: "280px",
+              background: "#0F172A",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.6)",
+              borderRadius: "10px",
+              border: "1px solid #334155",
+              padding: "14px",
+              color: "#F8FAFC",
+              zIndex: 100,
             }}
           >
-            <Cpu size={22} />
-          </div>
-          <div>
-            <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", color: "#64748B" }}>
-              GraphSAGE GNN Aggregator
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+              <span style={{ fontSize: "10px", fontWeight: 800, textTransform: "uppercase", color: "#38BDF8", background: "#1E293B", padding: "2px 8px", borderRadius: "4px" }}>
+                {selectedNodeObj.kind} NODE
+              </span>
+              <X size={15} style={{ cursor: "pointer", color: "#94A3B8" }} onClick={() => setSelectedNodeId(null)} />
             </div>
-            <div style={{ fontSize: "15px", fontWeight: 700, color: gnn?.signal ? "#DC2626" : "#1E293B" }}>
-              {gnn ? `${gnn.graphsage_score}% GNN Fraud Risk` : "Evaluating GNN..."}
-              {gnn?.signal && <span style={{ fontSize: "11px", marginLeft: "6px", color: "#DC2626" }}>⚠️ HIGH RISK SIGNAL</span>}
-            </div>
-            <div style={{ fontSize: "11px", color: "#64748B" }}>
-              {gnn ? `2-Hop Sample: ${gnn.hop1_neighbors_count} 1-hop, ${gnn.hop2_neighbors_count} 2-hop` : "GraphSAGE Mean Aggregator"}
-            </div>
-          </div>
-        </div>
 
-        <div style={{ display: "flex", gap: "12px", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-            <div
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "8px",
-                background: neo4j?.connected ? "#ECFDF5" : "#F8FAFC",
-                color: neo4j?.connected ? "#059669" : "#475569",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Database size={22} />
+            <h4 style={{ fontSize: "13px", fontWeight: 700, margin: "0 0 4px 0", wordBreak: "break-all" }}>
+              {selectedNodeObj.label}
+            </h4>
+            <p style={{ fontSize: "10px", color: "#94A3B8", margin: 0 }}>ID: {selectedNodeObj.id}</p>
+
+            <div style={{ margin: "10px 0", padding: "8px", background: "#1E293B", borderRadius: "6px", fontSize: "11px" }}>
+              <div><strong>Risk Level:</strong> {selectedNodeObj.risk}</div>
+              <div><strong>Degree Centrality:</strong> {selectedNodeObj.degree || 1}</div>
+              {selectedNodeObj.amount !== undefined && (
+                <div><strong>Transaction Amount:</strong> ${selectedNodeObj.amount} {selectedNodeObj.currency}</div>
+              )}
             </div>
-            <div>
-              <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", color: "#64748B" }}>
-                Neo4j Graph Database
-              </div>
-              <div style={{ fontSize: "13px", fontWeight: 600, color: "#1E293B" }}>
-                {neo4j?.engine || "Cypher Graph Engine"}
-              </div>
-              <div style={{ fontSize: "11px", color: "#64748B" }}>
-                {query.data?.nodes.length || 0} Graph Nodes · {query.data?.edges.length || 0} Relationships
-              </div>
+
+            <div style={{ fontSize: "11px" }}>
+              <strong style={{ display: "block", marginBottom: "4px", color: "#94A3B8" }}>Connected Edges ({connectedEdges?.length || 0}):</strong>
+              <ul style={{ paddingLeft: "14px", margin: 0, fontSize: "10.5px", color: "#CBD5E1" }}>
+                {connectedEdges?.map((e) => (
+                  <li key={e.data.id} style={{ marginBottom: "3px" }}>
+                    <strong>{e.data.relationship}</strong> → {e.data.source === selectedNodeId ? e.data.target : e.data.source}
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={syncMutation}
-            disabled={isSyncing}
-            style={{
-              padding: "6px 10px",
-              fontSize: "11px",
-              background: "#FFFFFF",
-              border: "1px solid #CBD5E1",
-              borderRadius: "6px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-            }}
-          >
-            <RefreshCw size={12} className={isSyncing ? "animate-spin" : ""} />
-            {isSyncing ? "Syncing..." : "Sync Neo4j"}
-          </button>
-        </div>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div style={{ display: "flex", gap: "12px", padding: "0 16px 12px 16px", alignItems: "center", flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "#F1F5F9", padding: "6px 10px", borderRadius: "6px", flex: 1, minWidth: "180px" }}>
-          <Search size={14} color="#64748B" />
-          <input
-            type="text"
-            placeholder="Search node ID or entity label..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ border: "none", background: "transparent", fontSize: "12px", outline: "none", width: "100%" }}
-          />
-          {searchTerm && <X size={14} style={{ cursor: "pointer" }} onClick={() => setSearchTerm("")} />}
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <Filter size={14} color="#64748B" />
-          <select
-            value={filterKind}
-            onChange={(e) => setFilterKind(e.target.value)}
-            style={{ fontSize: "12px", padding: "6px 10px", borderRadius: "6px", border: "1px solid #CBD5E1" }}
-          >
-            <option value="all">All Entity Types</option>
-            <option value="transaction">Transactions</option>
-            <option value="customer">Customers</option>
-            <option value="merchant">Merchants</option>
-            <option value="device">Devices</option>
-            <option value="ip">IP Addresses</option>
-            <option value="location">Locations</option>
-          </select>
-        </div>
-      </div>
-
-      <ErrorBox error={query.error} />
-
-      {query.isLoading ? (
-        <Loading />
-      ) : engineMode === "flow" ? (
-        <ReactFlowProvider>
-          <GraphCanvasInner
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onNodeClick={(_: any, node: Node) => setSelectedNodeId(node.id)}
-          />
-        </ReactFlowProvider>
-      ) : (
-        /* Neo4j Cypher Mode */
-        <div style={{ padding: "20px", background: "#0F172A", color: "#F8FAFC", borderRadius: "8px", margin: "16px", fontFamily: "monospace" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-            <span style={{ color: "#38BDF8", fontWeight: 700 }}>NEO4J CYPHER GRAPH VIEW</span>
-            <span style={{ fontSize: "11px", background: "#1E293B", padding: "4px 8px", borderRadius: "4px" }}>Engine: Neo4j Cypher Runtime</span>
-          </div>
-
-          <pre style={{ background: "#1E293B", padding: "12px", borderRadius: "6px", fontSize: "12px", color: "#4ADE80", overflowX: "auto" }}>
-            MATCH (t:Transaction &#123;id: &quot;{id}&quot;&#125;)-[r]-(e) RETURN t, r, e LIMIT 15
-          </pre>
-
-          <div style={{ marginTop: "16px" }}>
-            <h4 style={{ color: "#94A3B8", fontSize: "12px", textTransform: "uppercase" }}>Cypher Node Graph Inspection</h4>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "10px", marginTop: "10px" }}>
-              {query.data?.nodes.map(({ data }) => (
-                <div
-                  key={data.id}
-                  onClick={() => setSelectedNodeId(data.id)}
-                  style={{
-                    background: selectedNodeId === data.id ? "#1E3A8A" : "#1E293B",
-                    padding: "10px",
-                    borderRadius: "6px",
-                    border: "1px solid #334155",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div style={{ fontSize: "10px", color: "#38BDF8", fontWeight: 700 }}>:{data.kind.toUpperCase()}</div>
-                  <div style={{ fontSize: "12px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis" }}>{data.label}</div>
-                  <div style={{ fontSize: "10px", color: "#94A3B8", marginTop: "4px" }}>Degree: {data.degree || 1}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Selected Node Inspection Drawer */}
-      {selectedNodeObj && (
-        <div
-          style={{
-            position: "absolute",
-            top: "80px",
-            right: "20px",
-            width: "300px",
-            background: "#FFFFFF",
-            boxShadow: "0 10px 25px -5px rgba(0,0,0,0.2)",
-            borderRadius: "12px",
-            border: "1px solid #E2E8F0",
-            padding: "16px",
-            zIndex: 100,
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-            <span style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", color: "#2563EB", background: "#EFF6FF", padding: "2px 8px", borderRadius: "4px" }}>
-              {selectedNodeObj.kind} NODE
-            </span>
-            <X size={16} style={{ cursor: "pointer", color: "#64748B" }} onClick={() => setSelectedNodeId(null)} />
-          </div>
-
-          <h3 style={{ fontSize: "14px", fontWeight: 700, margin: "0 0 4px 0", wordBreak: "break-all" }}>
-            {selectedNodeObj.label}
-          </h3>
-          <p style={{ fontSize: "11px", color: "#64748B", margin: 0 }}>ID: {selectedNodeObj.id}</p>
-
-          <div style={{ margin: "12px 0", padding: "10px", background: "#F8FAFC", borderRadius: "8px", fontSize: "12px" }}>
-            <div><strong>Risk Level:</strong> {selectedNodeObj.risk}</div>
-            <div><strong>Degree Centrality:</strong> {selectedNodeObj.degree || 1}</div>
-            {selectedNodeObj.amount !== undefined && (
-              <div><strong>Transaction Amount:</strong> ${selectedNodeObj.amount} {selectedNodeObj.currency}</div>
-            )}
-          </div>
-
-          <div style={{ fontSize: "12px" }}>
-            <strong style={{ display: "block", marginBottom: "6px" }}>Connected Edges ({connectedEdges?.length || 0}):</strong>
-            <ul style={{ paddingLeft: "16px", margin: 0, fontSize: "11px", color: "#475569" }}>
-              {connectedEdges?.map((e) => (
-                <li key={e.data.id} style={{ marginBottom: "4px" }}>
-                  <strong>{e.data.relationship}</strong> → {e.data.source === selectedNodeId ? e.data.target : e.data.source}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
-
-      <div className="graph-caption">
-        {selectedNodeId ? `Selected: ${selectedNodeId}` : "Click any node to inspect properties · 2D Structured Layout Grid · GraphSAGE 2-Hop Enabled"}
-      </div>
-    </section>
+        )}
+      </section>
+    </div>
   );
 }

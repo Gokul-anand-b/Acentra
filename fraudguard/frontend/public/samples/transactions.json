@@ -1,0 +1,74 @@
+[
+  {
+    "id": "SAMPLE-INPUT-1",
+    "customer_id": "CUSTOMER-SAMPLE-BURST",
+    "merchant_id": "MERCHANT-ELECTRONICS",
+    "amount": 2000,
+    "currency": "USD",
+    "timestamp": "2025-07-01T10:00:00Z",
+    "latitude": 13.0827,
+    "longitude": 80.2707,
+    "device_id": "DEVICE-SAMPLE-BURST",
+    "fraud_label": 0
+  },
+  {
+    "id": "SAMPLE-INPUT-2",
+    "customer_id": "CUSTOMER-SAMPLE-BURST",
+    "merchant_id": "MERCHANT-ELECTRONICS",
+    "amount": 2000,
+    "currency": "USD",
+    "timestamp": "2025-07-01T10:01:00Z",
+    "latitude": 13.0827,
+    "longitude": 80.2707,
+    "device_id": "DEVICE-SAMPLE-BURST",
+    "fraud_label": 0
+  },
+  {
+    "id": "SAMPLE-INPUT-3",
+    "customer_id": "CUSTOMER-SAMPLE-BURST",
+    "merchant_id": "MERCHANT-ELECTRONICS",
+    "amount": 2000,
+    "currency": "USD",
+    "timestamp": "2025-07-01T10:02:00Z",
+    "latitude": 13.0827,
+    "longitude": 80.2707,
+    "device_id": "DEVICE-SAMPLE-BURST",
+    "fraud_label": 0
+  },
+  {
+    "id": "SAMPLE-INPUT-4",
+    "customer_id": "CUSTOMER-SAMPLE-BURST",
+    "merchant_id": "MERCHANT-ELECTRONICS",
+    "amount": 2000,
+    "currency": "USD",
+    "timestamp": "2025-07-01T10:03:00Z",
+    "latitude": 13.0827,
+    "longitude": 80.2707,
+    "device_id": "DEVICE-SAMPLE-BURST",
+    "fraud_label": 0
+  },
+  {
+    "id": "SAMPLE-INPUT-5",
+    "customer_id": "CUSTOMER-SAMPLE-BURST",
+    "merchant_id": "MERCHANT-ELECTRONICS",
+    "amount": 2000,
+    "currency": "USD",
+    "timestamp": "2025-07-01T10:04:00Z",
+    "latitude": 13.0827,
+    "longitude": 80.2707,
+    "device_id": "DEVICE-SAMPLE-BURST",
+    "fraud_label": 0
+  },
+  {
+    "id": "SAMPLE-INPUT-6",
+    "customer_id": "CUSTOMER-SAMPLE-BURST",
+    "merchant_id": "MERCHANT-ELECTRONICS",
+    "amount": 85000,
+    "currency": "USD",
+    "timestamp": "2025-07-01T10:05:00Z",
+    "latitude": 51.5074,
+    "longitude": -0.1278,
+    "device_id": "DEVICE-SAMPLE-BURST",
+    "fraud_label": 1
+  }
+]

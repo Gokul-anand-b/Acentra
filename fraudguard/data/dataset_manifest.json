@@ -1,0 +1,13 @@
+{
+  "name": "Sparkov public synthetic transaction sample",
+  "source_url": "https://huggingface.co/SquareBracket/fraud_detection/resolve/main/fraudTrain.csv?download=true",
+  "original_dataset": "https://www.kaggle.com/datasets/kartik2112/fraud-detection",
+  "generator": "https://github.com/namebrandon/Sparkov_Data_Generation",
+  "mirror": "https://huggingface.co/SquareBracket/fraud_detection",
+  "rows": 30000,
+  "sha256": "053373d393707ad4ca2c72b6fc89a0cfea2c7c50d65d0a31d90ce17fcf15759f",
+  "downloaded_at": "2026-09-30T09:16:06.247216+00:00",
+  "synthetic": true,
+  "selection": "First N CSV rows, subsequently sorted by event time for training",
+  "limitations": "Public mirror sample; not real bank data and not a full benchmark. No device/IP fields. Home/merchant coordinates are not customer travel evidence."
+}

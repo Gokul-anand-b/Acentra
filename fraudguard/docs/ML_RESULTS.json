@@ -1,0 +1,104 @@
+{
+  "model": "Random Forest",
+  "version": "20260930T092039-30a9fc",
+  "artifact": "random-forest-20260930T092039-30a9fc.skops",
+  "currency": "USD",
+  "feature_version": "behavior-v1",
+  "features": [
+    "log_amount",
+    "hour_sin",
+    "hour_cos",
+    "weekday",
+    "history_count",
+    "log_average",
+    "log_median",
+    "log_std",
+    "amount_to_median",
+    "recent_transactions"
+  ],
+  "threshold": 0.42499999999999993,
+  "trained_at": "2026-09-30T09:20:39.682660+00:00",
+  "seed": 42,
+  "dataset_rows": 30000,
+  "positive_count": 288,
+  "synthetic": true,
+  "dataset": "Sparkov public synthetic sample",
+  "dataset_sha256": "053373d393707ad4ca2c72b6fc89a0cfea2c7c50d65d0a31d90ce17fcf15759f",
+  "split": {
+    "train": {
+      "rows": 21000,
+      "positives": 153,
+      "from": "2019-01-01T00:00:18+00:00",
+      "to": "2019-01-13T17:17:51+00:00"
+    },
+    "validation": {
+      "rows": 4500,
+      "positives": 73,
+      "from": "2019-01-13T17:19:04+00:00",
+      "to": "2019-01-15T16:02:23+00:00"
+    },
+    "test": {
+      "rows": 4500,
+      "positives": 62,
+      "from": "2019-01-15T16:03:54+00:00",
+      "to": "2019-01-18T19:51:56+00:00"
+    }
+  },
+  "validation": {
+    "rows": 4500,
+    "positives": 73,
+    "precision": 0.8461538461538461,
+    "recall": 0.4520547945205479,
+    "f1": 0.5892857142857143,
+    "pr_auc": 0.6158194544983656,
+    "roc_auc": 0.946570082092762,
+    "confusion_matrix": [
+      [
+        4421,
+        6
+      ],
+      [
+        40,
+        33
+      ]
+    ]
+  },
+  "test": {
+    "rows": 4500,
+    "positives": 62,
+    "precision": 0.7358490566037735,
+    "recall": 0.6290322580645161,
+    "f1": 0.6782608695652174,
+    "pr_auc": 0.7161528452949982,
+    "roc_auc": 0.9744981028943582,
+    "confusion_matrix": [
+      [
+        4424,
+        14
+      ],
+      [
+        23,
+        39
+      ]
+    ]
+  },
+  "feature_importance": {
+    "log_amount": 0.3535950950387888,
+    "hour_sin": 0.04004814405106096,
+    "hour_cos": 0.08112907303420283,
+    "weekday": 0.009281242755209832,
+    "history_count": 0.02255433901376902,
+    "log_average": 0.15730664723465912,
+    "log_median": 0.036038527002713795,
+    "log_std": 0.21910023144891047,
+    "amount_to_median": 0.0809172504717322,
+    "recent_transactions": 2.9449948953095457e-05
+  },
+  "limitations": [
+    "Synthetic sample only; not a full benchmark or real-bank validation.",
+    "Timestamp without timezone in source is interpreted as UTC for reproducibility.",
+    "No cardholder home coordinates, labels, IDs, merchant names, or profile names enter the feature vector.",
+    "Uncalibrated output is advisory only; trained on USD amounts.",
+    "Not a graph neural network. GraphSAGE remains unimplemented."
+  ]
+}

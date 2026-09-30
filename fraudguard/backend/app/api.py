@@ -368,3 +368,17 @@ def neo4j_query(payload: CypherIn, user: Actor):
 
     return neo4j_service.cypher_query(payload.query)
 
+
+@router.get("/ai/explain/{id}")
+@router.post("/ai/explain/{id}")
+async def ai_explain(id: str, db: Db, user: Actor):
+    from app.services.ai_explanation import explain_transaction_ai
+    from app.services.graph import investigation_graph
+
+    transaction = get_transaction(db, id)
+    assessment = db.get(Assessment, transaction.id)
+    graph_info = investigation_graph(db, transaction)
+
+    return await explain_transaction_ai(transaction, assessment, graph_info)
+
+

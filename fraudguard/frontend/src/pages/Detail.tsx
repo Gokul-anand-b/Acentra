@@ -3,10 +3,10 @@ import { Link, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import InvestigationGraph from "../components/InvestigationGraph";
 import Pipeline from "../components/Pipeline";
-import { ArrowLeft, Check, ShieldAlert, Clock3, Printer } from "lucide-react";
+import { ArrowLeft, Check, ShieldAlert, Clock3, Printer, Sparkles, BrainCircuit } from "lucide-react";
 import { api, money, date, human } from "../api";
 import { Badge, ErrorBox, Loading } from "../components";
-import type { Transaction } from "../types";
+import type { Transaction, AIExplanation } from "../types";
 
 export default function Detail({
   transactionId,
@@ -16,10 +16,18 @@ export default function Detail({
   const client = useQueryClient();
   const [reason, setReason] = useState("");
   const [success, setSuccess] = useState("");
+
   const query = useQuery<Transaction>({
     queryKey: ["transaction", id],
     queryFn: () => api(`/transactions/${encodeURIComponent(id!)}`),
   });
+
+  const aiQuery = useQuery<AIExplanation>({
+    queryKey: ["ai-explain", id],
+    queryFn: () => api(`/ai/explain/${encodeURIComponent(id!)}`),
+    enabled: false,
+  });
+
   const action = useMutation({
     mutationFn: (name: string) =>
       api(`/transactions/${encodeURIComponent(id!)}/${name}`, {
@@ -32,11 +40,13 @@ export default function Detail({
       client.invalidateQueries();
     },
   });
+
   if (query.isLoading) return <Loading />;
   if (!query.data) return <ErrorBox error={query.error} />;
   const t = query.data;
   const a = t.assessment;
   const final = ["CLEARED", "CONFIRMED_FRAUD"].includes(t.status);
+
   return (
     <>
       <Link to="/alerts" className="back-link">
@@ -89,6 +99,60 @@ export default function Detail({
               <small>{a.scoring.note}</small>
             </div>
           </section>
+
+          {/* AI Contextual Explanation Card with Rate Limiter Queue */}
+          <section className="panel ai-panel" style={{ background: "linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)", border: "1px solid #bfdbfe" }}>
+            <div className="panel-heading" style={{ flexWrap: "wrap", gap: "10px" }}>
+              <div>
+                <h2 style={{ display: "flex", alignItems: "center", gap: "8px", color: "#1e40af" }}>
+                  <Sparkles size={20} color="#2563eb" />
+                  AI Contextual Explanation & Risk Synthesis
+                </h2>
+                <p className="muted">
+                  Context-aware explanation combining transaction signals, GraphSAGE 2-hop aggregation, and graph entities.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="primary"
+                disabled={aiQuery.isFetching}
+                onClick={() => aiQuery.refetch()}
+                style={{ padding: "6px 14px", fontSize: "12px", display: "flex", alignItems: "center", gap: "6px" }}
+              >
+                <Sparkles size={14} />
+                {aiQuery.isFetching ? "Queuing & Synthesizing..." : "Generate AI Explanation"}
+              </button>
+            </div>
+
+            {aiQuery.data && (
+              <div style={{ marginTop: "12px", fontSize: "13px", color: "#1e293b" }}>
+                <div style={{ background: "#ffffff", padding: "14px", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
+                  <p style={{ margin: 0, fontWeight: 600, lineHeight: 1.5 }}>
+                    {aiQuery.data.summary}
+                  </p>
+                  
+                  <div style={{ marginTop: "10px" }}>
+                    <strong style={{ fontSize: "11px", textTransform: "uppercase", color: "#64748b" }}>Key Risk Correlations:</strong>
+                    <ul style={{ margin: "4px 0 0 0", paddingLeft: "18px", fontSize: "12px" }}>
+                      {aiQuery.data.key_factors.map((f, i) => (
+                        <li key={i} style={{ marginBottom: "3px" }}>{f}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px", paddingTop: "10px", borderTop: "1px solid #f1f5f9", flexWrap: "wrap", gap: "8px" }}>
+                    <span style={{ fontSize: "11px", color: "#2563eb", background: "#eff6ff", padding: "4px 8px", borderRadius: "4px", fontWeight: 700 }}>
+                      Recommended Action: {aiQuery.data.recommended_action}
+                    </span>
+                    <span style={{ fontSize: "11px", color: "#64748b" }}>
+                      Confidence: {aiQuery.data.confidence_score}% · Rate limit queue: {aiQuery.data.rate_limit_queue_latency_ms}ms · {aiQuery.data.provider}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+
           <section className="panel">
             <div className="panel-heading">
               <div>

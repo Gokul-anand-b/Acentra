@@ -130,3 +130,19 @@ export interface Neo4jStatus {
   status_message: string;
 }
 
+export interface AIExplanation {
+  transaction_id: string;
+  risk_level: string;
+  score: number;
+  gnn_score: number;
+  summary: string;
+  key_factors: string[];
+  graph_context: string;
+  recommended_action: string;
+  action_note: string;
+  confidence_score: number;
+  provider: string;
+  rate_limit_queue_latency_ms: number;
+}
+
+

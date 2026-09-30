@@ -91,13 +91,15 @@ export function InputPage({ admin }: { admin: boolean }) {
   function sample() {
     setForm({
       ...emptyInput(),
-      customer_id: "CUSTOMER-SAMPLE",
-      merchant_id: "MERCHANT-BOOKS",
-      amount: "49.99",
-      device_id: "DEVICE-SAMPLE",
-      ip_address: "192.0.2.10",
-      latitude: "13.0827",
-      longitude: "80.2707",
+      id: "TX-PITCH-DEMO-01",
+      customer_id: "CUST-ALICE-VANCE",
+      merchant_id: "Binance Crypto Exchange",
+      amount: "8500.00",
+      currency: "USD",
+      device_id: "DEV-SHARED-PROXY-99",
+      ip_address: "198.51.100.250",
+      latitude: "48.8566",
+      longitude: "2.3522",
     });
     setSynthetic(true);
   }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, CSSProperties } from "react";
+import { useState, useEffect, CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ReactFlow,
@@ -29,18 +29,10 @@ import {
   Filter,
   X,
   Building2,
-  Shuffle,
-  Zap,
   Wallet,
-  Target,
   Copy,
   Check,
-  LayoutGrid,
   RefreshCw,
-  Layers,
-  CircleDot,
-  Radio,
-  Share2,
   HardDrive,
   Globe,
   MapPin,
@@ -142,9 +134,8 @@ function ForensicNodeCard({ data, isConnectable }: { data: any; isConnectable?: 
   const displayName = data.label || data.id;
   const shortName = displayName.length > 16 ? `${displayName.slice(0, 7)}...${displayName.slice(-5)}` : displayName;
 
-  /* ── 1. CIRCULAR GRAPH NODE MODE ── */
   if (isNodeMode) {
-    const nodeDiameter = kind === "transaction" ? 58 : 52;
+    const nodeDiameter = kind === "transaction" ? 56 : 50;
     return (
       <div
         style={{
@@ -181,7 +172,7 @@ function ForensicNodeCard({ data, isConnectable }: { data: any; isConnectable?: 
           }}
         >
           <Handle type="target" position={Position.Left} isConnectable={isConnectable} style={{ background: cfg.color }} />
-          {getIcon(22)}
+          {getIcon(20)}
           <div
             style={{
               position: "absolute",
@@ -246,42 +237,42 @@ function ForensicNodeCard({ data, isConnectable }: { data: any; isConnectable?: 
     );
   }
 
-  /* ── 2. DETAILED CARD MODE ── */
+  /* CARD MODE */
   return (
     <div
       style={{
         position: "relative",
-        width: 220,
-        minHeight: 74,
+        width: 210,
+        minHeight: 70,
         background: "#FFFFFF",
         borderRadius: 10,
         border: isSelected ? "2px solid #2563EB" : isCritical ? "2px solid #EF4444" : `1.5px solid ${cfg.border}`,
         borderLeft: `5px solid ${cfg.color}`,
         boxShadow: "0 2px 8px -1px rgba(0, 0, 0, 0.05)",
-        padding: "9px 12px",
+        padding: "8px 10px",
         display: "flex",
         alignItems: "center",
-        gap: 10,
+        gap: 8,
         cursor: "pointer",
         userSelect: "none",
       }}
     >
       <Handle type="target" position={Position.Left} isConnectable={isConnectable} style={{ background: cfg.color }} />
-      <div style={{ width: 38, height: 38, borderRadius: 8, background: cfg.iconBg, border: `1px solid ${cfg.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        {getIcon(20)}
+      <div style={{ width: 36, height: 36, borderRadius: 8, background: cfg.iconBg, border: `1px solid ${cfg.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {getIcon(18)}
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
-          <span style={{ fontSize: "9px", fontWeight: 800, textTransform: "uppercase", color: cfg.color, letterSpacing: 0.5 }}>
+          <span style={{ fontSize: "8.5px", fontWeight: 800, textTransform: "uppercase", color: cfg.color }}>
             {cfg.badge}
           </span>
-          {isCritical && <span style={{ fontSize: "8.5px", fontWeight: 800, background: "#FEF2F2", color: "#DC2626", padding: "1px 4px", borderRadius: 3 }}>HIGH</span>}
+          {isCritical && <span style={{ fontSize: "8px", fontWeight: 800, background: "#FEF2F2", color: "#DC2626", padding: "1px 4px", borderRadius: 3 }}>HIGH</span>}
         </div>
-        <div style={{ fontSize: "12px", fontWeight: 700, color: "#0F172A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={displayName}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: "#0F172A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={displayName}>
           {shortName}
         </div>
-        <div style={{ fontSize: "10px", color: "#64748B", display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+        <div style={{ fontSize: "9.5px", color: "#64748B", display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
           <span>Deg: {data.degree || 1}</span>
           <button onClick={handleCopy} title="Copy ID" style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: copied ? "#10B981" : "#94A3B8" }}>
             {copied ? <Check size={10} /> : <Copy size={9} />}
@@ -293,7 +284,7 @@ function ForensicNodeCard({ data, isConnectable }: { data: any; isConnectable?: 
   );
 }
 
-/* ── Custom Forensic Edge Component ───────────────────────────── */
+/* ── Custom Edge ───────────────────────────── */
 function ForensicEdge({
   sourceX,
   sourceY,
@@ -350,7 +341,7 @@ function ForensicEdge({
 const nodeTypes = { custom: ForensicNodeCard };
 const edgeTypes = { forensic: ForensicEdge };
 
-/* ── Inner Graph Canvas ───────────────────────── */
+/* ── Inner Canvas ───────────────────────── */
 function GraphCanvasInner({
   nodes,
   edges,
@@ -369,14 +360,14 @@ function GraphCanvasInner({
   useEffect(() => {
     if (nodes && nodes.length > 0) {
       const timer = setTimeout(() => {
-        fitView({ padding: 0.2, duration: 400, maxZoom: 1.0, minZoom: 0.4 });
+        fitView({ padding: 0.18, duration: 400, maxZoom: 1.0, minZoom: 0.35 });
       }, 100);
       return () => clearTimeout(timer);
     }
   }, [nodes.length, fitView]);
 
   return (
-    <div style={{ flex: 1, width: "100%", height: "450px", position: "relative" }}>
+    <div style={{ flex: 1, width: "100%", height: "460px", position: "relative" }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -456,9 +447,6 @@ export default function InvestigationGraph({ id }: { id: string }) {
   useEffect(() => {
     if (!query.data) return;
 
-    const groups = ["customer", "device", "ip", "transaction", "merchant", "location"];
-    const counters: Record<string, number> = {};
-
     const filteredNodesData = query.data.nodes.filter(({ data }) => {
       const matchKind = filterKind === "all" || data.kind === filterKind;
       const matchSearch =
@@ -470,14 +458,38 @@ export default function InvestigationGraph({ id }: { id: string }) {
 
     const activeNodeIds = new Set(filteredNodesData.map((n) => n.data.id));
 
+    // Structured 2D Multi-Column Layout Grid
+    const kindCounters: Record<string, number> = {};
+    let txCounter = 0;
+
     setNodes(
       filteredNodesData.map(({ data }) => {
-        const column = groups.indexOf(data.kind);
-        const index = counters[data.kind] || 0;
-        counters[data.kind] = index + 1;
+        let posX = 0;
+        let posY = 0;
 
-        const posX = (column >= 0 ? column : 0) * (nodeDisplayMode === "CARD" ? 250 : 200);
-        const posY = index * (nodeDisplayMode === "CARD" ? 110 : 120);
+        if (data.kind === "customer") {
+          const idx = kindCounters["customer"] || 0;
+          kindCounters["customer"] = idx + 1;
+          posX = 0;
+          posY = idx * (nodeDisplayMode === "CARD" ? 110 : 120);
+        } else if (data.kind === "transaction") {
+          const col = txCounter % 2;
+          const row = Math.floor(txCounter / 2);
+          txCounter += 1;
+          posX = 260 + col * (nodeDisplayMode === "CARD" ? 240 : 210);
+          posY = row * (nodeDisplayMode === "CARD" ? 110 : 120);
+        } else if (data.kind === "merchant") {
+          const idx = kindCounters["merchant"] || 0;
+          kindCounters["merchant"] = idx + 1;
+          posX = 760;
+          posY = idx * (nodeDisplayMode === "CARD" ? 110 : 120);
+        } else {
+          // Devices, IPs, Locations
+          const idx = kindCounters["other"] || 0;
+          kindCounters["other"] = idx + 1;
+          posX = 990;
+          posY = idx * (nodeDisplayMode === "CARD" ? 100 : 110);
+        }
 
         return {
           id: data.id,
@@ -733,7 +745,7 @@ export default function InvestigationGraph({ id }: { id: string }) {
           </div>
 
           <pre style={{ background: "#1E293B", padding: "12px", borderRadius: "6px", fontSize: "12px", color: "#4ADE80", overflowX: "auto" }}>
-            MATCH (t:Transaction &#123;id: &quot;{id}&quot;&#125;)-[r]-(e) RETURN t, r, e LIMIT 100
+            MATCH (t:Transaction &#123;id: &quot;{id}&quot;&#125;)-[r]-(e) RETURN t, r, e LIMIT 15
           </pre>
 
           <div style={{ marginTop: "16px" }}>
@@ -811,7 +823,7 @@ export default function InvestigationGraph({ id }: { id: string }) {
       )}
 
       <div className="graph-caption">
-        {selectedNodeId ? `Selected: ${selectedNodeId}` : "Click any node to inspect properties · ReactFlow Forensic Node Cards · GraphSAGE 2-Hop Enabled"}
+        {selectedNodeId ? `Selected: ${selectedNodeId}` : "Click any node to inspect properties · 2D Structured Layout Grid · GraphSAGE 2-Hop Enabled"}
       </div>
     </section>
   );

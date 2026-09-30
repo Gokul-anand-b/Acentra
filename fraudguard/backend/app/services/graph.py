@@ -12,16 +12,18 @@ def investigation_graph(db, root):
         conditions.append(Transaction.device_id == root.device_id)
     if root.ip_address:
         conditions.append(Transaction.ip_address == root.ip_address)
+
+    # Limit to 15 relevant neighboring transactions so the graph remains clean, legible, and real-looking
     candidates = list(
         db.scalars(
             select(Transaction)
             .where(or_(*conditions), Transaction.timestamp <= root.timestamp)
             .order_by(Transaction.timestamp.desc())
-            .limit(101)
+            .limit(16)
         )
     )
-    truncated = len(candidates) > 100
-    rows = [root] + [t for t in candidates[:100] if t.id != root.id]
+    truncated = len(candidates) > 15
+    rows = [root] + [t for t in candidates[:15] if t.id != root.id]
     graph = nx.Graph()
 
     for transaction in rows:
@@ -90,7 +92,7 @@ def investigation_graph(db, root):
         "nodes": nodes_list,
         "edges": edges_list,
         "truncated": truncated,
-        "transaction_limit": 100,
+        "transaction_limit": 15,
         "graphsage": graphsage_result,
         "neo4j": neo4j_status,
         "note": "Observed relationships with GraphSAGE GNN 2-hop aggregation & Neo4j graph context.",

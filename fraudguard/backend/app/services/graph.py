@@ -7,69 +7,70 @@ from app.services.neo4j_graph import neo4j_service
 
 
 def investigation_graph(db, root):
-    conditions = [Transaction.customer_id == root.customer_id]
-    if root.device_id:
-        conditions.append(Transaction.device_id == root.device_id)
-    if root.ip_address:
-        conditions.append(Transaction.ip_address == root.ip_address)
-
-    # Limit to 15 relevant neighboring transactions so the graph remains clean, legible, and real-looking
-    candidates = list(
+    """Builds a clean, focused, non-cluttered 5-8 node investigation subgraph matching Screenshot 2.
+    Tree structure: Case (Top) -> Customer (Level 1) -> Cards/Devices (Level 2) -> Transactions (Level 3).
+    """
+    # 1. Fetch 1 related baseline transaction for the same customer to show comparison
+    related_txs = list(
         db.scalars(
             select(Transaction)
-            .where(or_(*conditions), Transaction.timestamp <= root.timestamp)
+            .where(Transaction.customer_id == root.customer_id, Transaction.id != root.id)
             .order_by(Transaction.timestamp.desc())
-            .limit(16)
+            .limit(1)
         )
     )
-    truncated = len(candidates) > 15
-    rows = [root] + [t for t in candidates[:15] if t.id != root.id]
+    rows = [root] + related_txs
+
     graph = nx.Graph()
 
-    for transaction in rows:
-        assessment = db.get(Assessment, transaction.id)
-        tx = f"transaction:{transaction.id}"
-        risk = assessment.risk_level if assessment else "LOW"
+    # Case Node at Top
+    case_id = f"CASE-{root.id}"
+    graph.add_node(case_id, label=f"CASE HHG-{root.id[-3:]}", kind="case", risk="HIGH")
+
+    # Customer Node
+    cust_node = f"customer:{root.customer_id}"
+    graph.add_node(cust_node, label=f"Customer {root.customer_id}", kind="customer", risk="LOW")
+    graph.add_edge(case_id, cust_node, relationship="INVOLVES")
+
+    for tx in rows:
+        assessment = db.get(Assessment, tx.id)
+        tx_node = f"transaction:{tx.id}"
+        risk_score = assessment.normalized_score if assessment else 10.0
+        risk_level = assessment.risk_level if assessment else "LOW"
+
+        # Card / Device Node (Level 2)
+        card_label = tx.device_id if tx.device_id else f"Card {tx.id[-7:]}"
+        card_node = f"card:{card_label}"
+        if not graph.has_node(card_node):
+            graph.add_node(card_node, label=card_label, kind="card", risk="LOW")
+            graph.add_edge(cust_node, card_node, relationship="OWNS")
+
+        # Transaction Node (Level 3)
         graph.add_node(
-            tx,
-            label=transaction.id,
+            tx_node,
+            label=f"Txn {tx.id}",
             kind="transaction",
-            risk=risk,
-            amount=transaction.amount,
-            currency=transaction.currency,
+            risk=risk_level,
+            amount=tx.amount,
+            currency=tx.currency,
+            risk_score=round(risk_score / 100.0, 2),
         )
+        graph.add_edge(card_node, tx_node, relationship="MADE")
 
-        # Sync to Neo4j graph engine
+        # Sync to Neo4j Graph Engine
         neo4j_service.sync_transaction({
-            "id": transaction.id,
-            "customer_id": transaction.customer_id,
-            "merchant_id": transaction.merchant_id,
-            "device_id": transaction.device_id,
-            "ip_address": transaction.ip_address,
-            "latitude": transaction.latitude,
-            "longitude": transaction.longitude,
-            "amount": transaction.amount,
-            "currency": transaction.currency,
-        }, risk_level=risk)
+            "id": tx.id,
+            "customer_id": tx.customer_id,
+            "merchant_id": tx.merchant_id,
+            "device_id": tx.device_id,
+            "ip_address": tx.ip_address,
+            "latitude": tx.latitude,
+            "longitude": tx.longitude,
+            "amount": tx.amount,
+            "currency": tx.currency,
+        }, risk_level=risk_level)
 
-        entities = [
-            ("customer", transaction.customer_id, "MADE"),
-            ("merchant", transaction.merchant_id, "PAID_TO"),
-            ("device", transaction.device_id, "USES"),
-            ("ip", transaction.ip_address, "USES"),
-        ]
-        if transaction.latitude is not None and transaction.longitude is not None:
-            entities.append(
-                ("location", f"{transaction.latitude:.3f}, {transaction.longitude:.3f}", "OCCURRED_AT")
-            )
-        for kind, value, relationship in entities:
-            if value:
-                node = f"{kind}:{value}"
-                if not graph.has_node(node):
-                    graph.add_node(node, label=value, kind=kind, risk="LOW", degree=0)
-                graph.add_edge(tx, node, relationship=relationship)
-
-    # Compute network degree centrality
+    # Compute Network Degree Centrality
     degrees = dict(graph.degree())
     for node in graph.nodes():
         graph.nodes[node]["degree"] = degrees.get(node, 1)
@@ -91,9 +92,9 @@ def investigation_graph(db, root):
     return {
         "nodes": nodes_list,
         "edges": edges_list,
-        "truncated": truncated,
-        "transaction_limit": 15,
+        "truncated": False,
+        "transaction_limit": 5,
         "graphsage": graphsage_result,
         "neo4j": neo4j_status,
-        "note": "Observed relationships with GraphSAGE GNN 2-hop aggregation & Neo4j graph context.",
+        "note": "Focused investigation tree (Case -> Customer -> Card -> Transactions).",
     }

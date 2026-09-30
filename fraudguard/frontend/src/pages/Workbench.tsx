@@ -88,20 +88,40 @@ export function InputPage({ admin }: { admin: boolean }) {
       </label>
     );
   }
-  function sample() {
+  function loadGenuineSample() {
     setForm({
       ...emptyInput(),
-      id: "TX-PITCH-DEMO-01",
-      customer_id: "CUST-ALICE-VANCE",
-      merchant_id: "Binance Crypto Exchange",
-      amount: "8500.00",
+      id: "3514030",
+      customer_id: "C12382",
+      merchant_id: "M-Apple-Store",
+      amount: "77.07",
       currency: "USD",
-      device_id: "DEV-SHARED-PROXY-99",
+      device_id: "Card-3514030",
+      ip_address: "198.51.100.12",
+      latitude: "40.7128",
+      longitude: "-74.0060",
+    });
+    setSynthetic(true);
+  }
+
+  function loadRiskSample() {
+    setForm({
+      ...emptyInput(),
+      id: "TXN-HHG-001",
+      customer_id: "C12382",
+      merchant_id: "Binance-Crypto-Exchange",
+      amount: "444.00",
+      currency: "USD",
+      device_id: "Card-21139",
       ip_address: "198.51.100.250",
       latitude: "48.8566",
       longitude: "2.3522",
     });
     setSynthetic(true);
+  }
+
+  function sample() {
+    loadRiskSample();
   }
   function submit(e: FormEvent) {
     e.preventDefault();
@@ -155,9 +175,14 @@ export function InputPage({ admin }: { admin: boolean }) {
                   <h2>Transaction input</h2>
                   <p>Validated and persisted before investigation</p>
                 </div>
-                <button type="button" onClick={sample}>
-                  Fill example
-                </button>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button type="button" onClick={loadGenuineSample} style={{ fontSize: "11px", padding: "4px 8px" }}>
+                    Genuine ($77.07)
+                  </button>
+                  <button type="button" onClick={loadRiskSample} style={{ fontSize: "11px", padding: "4px 8px", background: "#FEF2F2", color: "#DC2626", borderColor: "#FCA5A5" }}>
+                    Risk Alert ($444.00)
+                  </button>
+                </div>
               </div>
               <div className="form-section">
                 <h3>

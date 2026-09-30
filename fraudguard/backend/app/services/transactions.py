@@ -57,6 +57,11 @@ def ingest(db, data, actor="system", source="api", scenario=None):
         new={"source": source, "score": assessment["normalized_score"]},
     )
     db.flush()
+    try:
+        from app.services.notifications import flush_all_pending
+        flush_all_pending(db)
+    except Exception:
+        pass
     return transaction
 
 

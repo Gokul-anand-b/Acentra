@@ -87,8 +87,8 @@ def predict(transaction, history, recent_count):
             "graphsage_model": "GraphSAGE GNN (2-Hop Inductive Aggregator)",
             "note": "Uncalibrated model output with GraphSAGE GNN graph embeddings.",
         }
-    except Exception:
-        logger.exception("ML inference unavailable")
+    except Exception as err:
+        logger.debug("ML inference unavailable: %s", err)
         return {
             "available": False,
             "reason": "Model could not be loaded or evaluated; rule evaluation remains available",

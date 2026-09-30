@@ -70,7 +70,23 @@ def generate(db, count=20, seed=42):
     ingest(db, genuine_tx, "demo-generator", "synthetic", "genuine_baseline")
     inserted += 1
 
-    # 3. Sample 2: High Risk Fraud Alert Sample (TXN-HHG-001) - Triggers email notification to gokulakrishnankadhirvelu@gmail.com
+    # 3. Micro-burst sequence leading to High Risk Fraud Alert (TXN-HHG-001)
+    for b in range(4):
+        b_tx = TransactionIn(
+            id=f"TXN-BURST-00{b+1}",
+            customer_id="C12382",
+            merchant_id="Binance-Crypto-Exchange",
+            amount=350.00 + b * 20,
+            currency="USD",
+            timestamp=start - timedelta(minutes=5 - b),
+            device_id="Card-21139",
+            ip_address="198.51.100.250",
+            latitude=48.8566,
+            longitude=2.3522,
+            fraud_label=True,
+        )
+        ingest(db, b_tx, "demo-generator", "synthetic", "rapid_velocity_burst")
+
     risk_tx = TransactionIn(
         id="TXN-HHG-001",
         customer_id="C12382",
@@ -118,6 +134,12 @@ def generate(db, count=20, seed=42):
             "high_risk_burst" if suspicious else "normal_baseline",
         )
         inserted += 1
+
+    try:
+        from app.services.notifications import flush_all_pending
+        flush_all_pending(db)
+    except Exception:
+        pass
 
     db.commit()
     return {

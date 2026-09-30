@@ -1,4 +1,8 @@
-from datetime import UTC
+from datetime import timezone
+try:
+    from datetime import UTC
+except ImportError:
+    UTC = timezone.utc
 from math import asin, cos, radians, sin, sqrt
 
 from app.rules.base import FraudRule

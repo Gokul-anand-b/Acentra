@@ -349,3 +349,22 @@ def ml_status(user: Actor):
     from app.ml.runtime import status
 
     return status()
+
+
+@router.get("/graph/neo4j/status")
+def neo4j_status(user: Actor):
+    from app.services.neo4j_graph import neo4j_service
+
+    return neo4j_service.get_status()
+
+
+class CypherIn(BaseModel):
+    query: str = Field(min_length=1, max_length=1000)
+
+
+@router.post("/graph/neo4j/query")
+def neo4j_query(payload: CypherIn, user: Actor):
+    from app.services.neo4j_graph import neo4j_service
+
+    return neo4j_service.cypher_query(payload.query)
+

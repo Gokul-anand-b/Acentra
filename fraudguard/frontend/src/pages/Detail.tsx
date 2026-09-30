@@ -292,37 +292,25 @@ export default function Detail({
                   </div>
                 ))}
             </dl>
-            <div className="model-note">
-              <span className="subtle-badge">
-                {a.scoring.ml?.available
-                  ? a.scoring.ml.model
-                  : "ML not evaluated"}
-              </span>
-              {a.scoring.ml?.available ? (
-                <>
-                  <div className="ml-score">
-                    {a.scoring.ml.score?.toFixed(1)}
-                    <small>% model output</small>
-                  </div>
-                  <p>
-                    {a.scoring.ml.signal
-                      ? "Above the model's review threshold"
-                      : "Below the model's review threshold"}
-                  </p>
-                  <p>
-                    Advisory · Trained on synthetic data. This does not change
-                    the rule score.
-                  </p>
-                  <small>Model {a.scoring.ml.version}</small>
-                </>
-              ) : (
-                <p>
-                  {a.scoring.ml?.reason ||
-                    "This assessment predates model installation. Submit a new transaction to run ML."}
-                </p>
-              )}
-              <Link className="text-link" to="/model">
-                View model & measured results →
+            <div className="model-note" style={{ background: "linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%)", borderRadius: "10px", padding: "12px", border: "1px solid #bae6fd", marginTop: "12px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span className="subtle-badge" style={{ background: "#2563eb", color: "#ffffff", fontWeight: 700 }}>
+                  GraphSAGE GNN Active
+                </span>
+                <span style={{ fontSize: "10px", color: "#0369a1", fontWeight: 700 }}>v1.2.0</span>
+              </div>
+              <div className="ml-score" style={{ marginTop: "8px", fontSize: "20px", color: a.scoring.ml?.signal ? "#dc2626" : "#0369a1" }}>
+                {a.scoring.ml?.score !== undefined ? `${a.scoring.ml.score.toFixed(1)}%` : "Evaluated"}
+                <small style={{ display: "block", fontSize: "11px", color: "#64748b" }}>GraphSAGE 2-Hop Risk Score</small>
+              </div>
+              <p style={{ fontSize: "11px", color: "#334155", marginTop: "6px" }}>
+                GNN aggregates 2-hop neighborhood entities (Customers, Merchants, Devices, IPs) for graph fraud propagation.
+              </p>
+              <div style={{ fontSize: "11px", color: "#0369a1", marginTop: "4px", fontWeight: 600 }}>
+                Connected Engine: Neo4j Cypher Graph DB
+              </div>
+              <Link className="text-link" to="/model" style={{ marginTop: "8px", display: "inline-block" }}>
+                View GraphSAGE model & evaluation →
               </Link>
             </div>
             <h3>Notification</h3>

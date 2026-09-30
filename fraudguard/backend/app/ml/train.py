@@ -5,7 +5,11 @@ import csv
 import hashlib
 import json
 from collections import defaultdict, deque
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+try:
+    from datetime import UTC
+except ImportError:
+    UTC = timezone.utc
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4

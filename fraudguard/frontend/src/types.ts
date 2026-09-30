@@ -105,3 +105,28 @@ export interface User {
   email: string;
   role: string;
 }
+
+export interface GraphSAGEData {
+  node_id: string;
+  graphsage_score: number;
+  probability: number;
+  signal: boolean;
+  embedding: number[];
+  hop1_neighbors_count: number;
+  hop2_neighbors_count: number;
+  high_risk_neighbors_count: number;
+  aggregation: string;
+  model: string;
+  version: string;
+}
+
+export interface Neo4jStatus {
+  enabled: boolean;
+  connected: boolean;
+  engine: string;
+  uri: string;
+  total_nodes: number;
+  total_edges: number;
+  status_message: string;
+}
+

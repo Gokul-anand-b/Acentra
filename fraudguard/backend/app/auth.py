@@ -1,4 +1,8 @@
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timezone, timedelta
+try:
+    from datetime import UTC
+except ImportError:
+    UTC = timezone.utc
 from typing import Annotated
 
 import jwt

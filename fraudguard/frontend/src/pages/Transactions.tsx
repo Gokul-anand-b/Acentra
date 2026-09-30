@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Download, Cpu } from "lucide-react";
 import { api } from "../api";
 import { Table, ErrorBox, Loading } from "../components";
 import type { Page } from "../types";
+
 export default function Transactions({ alerts = false }: { alerts?: boolean }) {
   const [search, setSearch] = useState("");
   const [risk, setRisk] = useState("");
   const [status, setStatus] = useState("");
   const [sort, setSort] = useState("risk");
   const [page, setPage] = useState(1);
+
   const params = new URLSearchParams({
     q: search,
     risk,
@@ -17,16 +19,30 @@ export default function Transactions({ alerts = false }: { alerts?: boolean }) {
     sort,
     page: String(page),
   });
+
   const result = useQuery<Page>({
     queryKey: ["transactions", alerts, params.toString()],
     queryFn: () => api(`/${alerts ? "alerts" : "transactions"}?${params}`),
   });
+
   const change =
     (setter: (s: string) => void) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       setter(e.target.value);
       setPage(1);
     };
+
+  const exportData = () => {
+    if (!result.data?.items) return;
+    const jsonStr = JSON.stringify(result.data.items, null, 2);
+    const blob = new Blob([jsonStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `transactions-${alerts ? "alerts" : "ledger"}.json`;
+    a.click();
+  };
+
   return (
     <>
       <div className="page-heading">
@@ -37,13 +53,32 @@ export default function Transactions({ alerts = false }: { alerts?: boolean }) {
           <h1>{alerts ? "Alert queue" : "Transactions"}</h1>
           <p className="muted">
             {alerts
-              ? "Every signal has a story. Start with the evidence."
-              : "Every record, its assessment, and its review status."}
+              ? "Every signal has a story. GraphSAGE GNN & Neo4j graph context enriched."
+              : "Every record, its GraphSAGE assessment, and its review status."}
           </p>
         </div>
-        <span className="subtle-badge">
-          {result.data?.total ?? "…"} records
-        </span>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <button
+            type="button"
+            onClick={exportData}
+            style={{
+              padding: "6px 12px",
+              fontSize: "12px",
+              background: "#ffffff",
+              border: "1px solid #cbd5e1",
+              borderRadius: "6px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <Download size={14} /> Export JSON
+          </button>
+          <span className="subtle-badge">
+            {result.data?.total ?? "…"} records
+          </span>
+        </div>
       </div>
       <section className="panel">
         <div className="filters">

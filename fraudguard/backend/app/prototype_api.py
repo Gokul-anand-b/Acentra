@@ -1,4 +1,8 @@
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timezone, timedelta
+try:
+    from datetime import UTC
+except ImportError:
+    UTC = timezone.utc
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query
